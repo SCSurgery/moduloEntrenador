@@ -35,13 +35,29 @@ class moduloEntrenadorWidget:
 
     self.cargarScene()
 
-    sampleCollapsibleButton = ctk.ctkCollapsibleButton()
-    sampleCollapsibleButton.text = "A collapsible button1"
-    self.layout.addWidget(sampleCollapsibleButton)
+    #Definicion botenes colapsables:
+#--------------------------------------------------------------------------------------------------
+    planeacionCollapsibleButton = ctk.ctkCollapsibleButton()
+    planeacionCollapsibleButton.text = "Planeacion"
+    self.layout.addWidget(planeacionCollapsibleButton)
 
-    
-    sampleFormLayout = qt.QFormLayout(sampleCollapsibleButton)
+    #Layout de planeacion:
 
+    planeacionLayout = qt.QFormLayout(planeacionCollapsibleButton)
+
+    insercion1Button = qt.QPushButton("Puntos de insercion") #Se crea boton pulsable, con texto "Apply"
+    planeacionLayout.addWidget(insercion1Button) #Se añade el boton al layout del boton colapsable
+    insercion1Button.connect('clicked(bool)',self.onApplyincersion1)
+
+    insercion2Button = qt.QPushButton("Reiniciar puntos de insercion") #Se crea boton pulsable, con texto "Apply"
+    planeacionLayout.addWidget(insercion2Button) #Se añade el boton al layout del boton colapsable
+    insercion2Button.connect('clicked(bool)',self.onApplyincersion2)
+
+    medirButton = qt.QPushButton("Regla") #Se crea boton pulsable, con texto "Apply"
+    planeacionLayout.addWidget(medirButton) #Se añade el boton al layout del boton colapsable
+    medirButton.connect('clicked(bool)',self.onApplyincersion3)
+
+#--------------------------------------------------------------------------------------------------
   def cargarScene(self):
 
     path1='C:\Users\Camilo_Q\Documents\GitHub\moduloEntrenador/stlcolumna.stl' #Se obtiene direccion de la unbicación del tornillo
@@ -67,6 +83,21 @@ class moduloEntrenadorWidget:
     threeDView = threeDWidget.threeDView()
     threeDView.resetFocalPoint()
 
+  def onApplyincersion1(self):
+    placeModePersistence = 0
+    slicer.modules.markups.logic().StartPlaceMode(placeModePersistence)
+
+  def onApplyincersion2(self):
+    markups=slicer.util.getNode('F')
+    markups.RemoveAllMarkups()
+
+  def onApplyincersion3(self):
+    selectionNode = slicer.mrmlScene.GetNodeByID("vtkMRMLSelectionNodeSingleton")
+    selectionNode.SetReferenceActivePlaceNodeClassName("vtkMRMLAnnotationRulerNode")
+    interactionNode = slicer.mrmlScene.GetNodeByID("vtkMRMLInteractionNodeSingleton")
+    placeModePersistence = 0
+    interactionNode.SetPlaceModePersistence(placeModePersistence)
+    interactionNode.SetCurrentInteractionMode(1)
 
 
 
