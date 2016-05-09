@@ -91,8 +91,18 @@ class moduloEntrenadorWidget:
 # --------------------------------------------------------------------------------------------------
   
     #Layout manipulacion de tornillos
-
     manipulacionLayout = qt.QFormLayout(manipulacionTornillosCollapsibleButton)
+
+    labelSeleccionTornillo = qt.QLabel("Seleccione tornillo a mover: ") #Se crea label para seleccion de tornillo a manipular
+    manipulacionLayout.addWidget(labelSeleccionTornillo) #Se añade label
+ 
+    self.comboBoxSeleccionTornillo = qt.QComboBox() #Se crea comboBox para seleccionar tornillo
+    self.comboBoxSeleccionTornillo.addItem("Tornillo 1") #Se añade opciones
+    self.comboBoxSeleccionTornillo.addItem("Tornillo 2")
+    manipulacionLayout.addWidget(self.comboBoxSeleccionTornillo) #Se añade al layout
+   
+
+    
     self.barraTranslacionEjeTornillo = qt.QSlider(1) #Se crea un slicer 
     self.barraTranslacionEjeTornillo.setMinimum(0) #Minimo del slider -200
     self.barraTranslacionEjeTornillo.setMaximum(50) #Maximo de slider 200
@@ -314,16 +324,25 @@ class moduloEntrenadorWidget:
     
     valorTrasladoSlidex=self.barraTranslacionEjeTornillo.value
     print valorTrasladoSlidex
-    referencias = slicer.util.getNode("F")
     access=numpy.array(numpy.zeros(3)) #Creamos 3 vectores vacios de 3 elemenos
     target=numpy.array(numpy.zeros(3))
     normal=numpy.array(numpy.zeros(3))
     movimientoNormal=numpy.array(numpy.zeros(3))
     try:
-        referencias.GetNthFiducialPosition(0,target) #Se obtienen las nuevas posiciones de los fiducial y se almacenan en dos de los vectores
-        referencias.GetNthFiducialPosition(1,access)
-        normal=access-target # Se restan los dos puntos para obtener la direccion entre ellos
-        transformadaNode=slicer.util.getNode('Transformada Tornillo 1')
+
+        if self.comboBoxSeleccionTornillo.currentIndex == 0:
+            referencias = slicer.util.getNode("F")
+            referencias.GetNthFiducialPosition(0,target) #Se obtienen las nuevas posiciones de los fiducial y se almacenan en dos de los vectores
+            referencias.GetNthFiducialPosition(1,access)
+            normal=access-target # Se restan los dos puntos para obtener la direccion entre ellos
+            transformadaNode=slicer.util.getNode('Transformada Tornillo 1')
+        else:
+            referencias = slicer.util.getNode("G")
+            referencias.GetNthFiducialPosition(0,target) #Se obtienen las nuevas posiciones de los fiducial y se almacenan en dos de los vectores
+            referencias.GetNthFiducialPosition(1,access)
+            normal=access-target # Se restan los dos puntos para obtener la direccion entre ellos
+            transformadaNode=slicer.util.getNode('Transformada Tornillo 2')
+
         vtk.vtkMath().Normalize(normal) #Se normaliza la direccion del vector entre los dos fiducial
         mt = vtk.vtkMatrix4x4()   #Se crea nueva matriz para manipular la matriz de rot-des
         transformada=transformadaNode  #Se recupera el nodo de la transformada creada
