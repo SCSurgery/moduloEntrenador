@@ -45,7 +45,13 @@ class moduloEntrenadorWidget:
     cargarTornillosCollapsibleButton = ctk.ctkCollapsibleButton()
     cargarTornillosCollapsibleButton.text = "Cargar tornillos"
     self.layout.addWidget(cargarTornillosCollapsibleButton)
-    cargarTornillosCollapsibleButton.collapsed = True
+    cargarTornillosCollapsibleButton.collapsed = False
+
+    manipulacionTornillosCollapsibleButton = ctk.ctkCollapsibleButton()
+    manipulacionTornillosCollapsibleButton.text = "Manipulacion de tornillos"
+    self.layout.addWidget(manipulacionTornillosCollapsibleButton)
+    manipulacionTornillosCollapsibleButton.collapsed = False
+
 
 #----------------------------------------------------------------------------------------------
     #Layout de planeacion:
@@ -83,7 +89,20 @@ class moduloEntrenadorWidget:
     cargarTonillo2.connect('clicked(bool)',self.onApplyCargarTornillo2)
 
 # --------------------------------------------------------------------------------------------------
-    
+  
+    #Layout manipulacion de tornillos
+
+    manipulacionLayout = qt.QFormLayout(manipulacionTornillosCollapsibleButton)
+    self.barraTranslacionEjeTornillo = qt.QSlider(1) #Se crea un slicer 
+    self.barraTranslacionEjeTornillo.setMinimum(0) #Minimo del slider -200
+    self.barraTranslacionEjeTornillo.setMaximum(50) #Maximo de slider 200
+    manipulacionLayout.layout().addWidget(self.barraTranslacionEjeTornillo) #Se añade slicer al layout
+    self.barraTranslacionEjeTornillo.valueChanged.connect(self.onMoveTraslacionEjeTornillo)
+
+
+
+
+#---------------------------------------------------------------------------------------------------
   def cargarScene(self):
 
     path1='C:\Users\Camilo_Q\Documents\GitHub\moduloEntrenador/stlcolumna.stl' #Se obtiene direccion de la unbicación del tornillo
@@ -291,3 +310,34 @@ class moduloEntrenadorWidget:
     mt.SetElement(2,3,nodePosicion[2])
     transformada.SetAndObserveMatrixTransformToParent(mt) # Actulizo la matriz con los cambios realizados
 
+  def onMoveTraslacionEjeTornillo(self):
+    
+    valorTrasladoSlidex=self.barraTranslacionEjeTornillo.value
+    print valorTrasladoSlidex
+    referencias = slicer.util.getNode("F")
+    access=numpy.array(numpy.zeros(3)) #Creamos 3 vectores vacios de 3 elemenos
+    target=numpy.array(numpy.zeros(3))
+    normal=numpy.array(numpy.zeros(3))
+    movimientoNormal=numpy.array(numpy.zeros(3))
+    try:
+        referencias.GetNthFiducialPosition(0,target) #Se obtienen las nuevas posiciones de los fiducial y se almacenan en dos de los vectores
+        referencias.GetNthFiducialPosition(1,access)
+        normal=access-target # Se restan los dos puntos para obtener la direccion entre ellos
+        transformadaNode=slicer.util.getNode('Transformada Tornillo 1')
+        vtk.vtkMath().Normalize(normal) #Se normaliza la direccion del vector entre los dos fiducial
+        mt = vtk.vtkMatrix4x4()   #Se crea nueva matriz para manipular la matriz de rot-des
+        transformada=transformadaNode  #Se recupera el nodo de la transformada creada
+        transformada.GetMatrixTransformToParent(mt)
+        movimientoNormal[0]=target[0]-normal[0]*valorTrasladoSlidex
+        movimientoNormal[1]=target[1]-normal[1]*valorTrasladoSlidex
+        movimientoNormal[2]=target[2]-normal[2]*valorTrasladoSlidex
+        mt.SetElement(0,3,movimientoNormal[0]) #Asigno el origen de la matriz en el fiducial target para mover el tornillo y rotar sobre este punto
+        mt.SetElement(1,3,movimientoNormal[1])
+        mt.SetElement(2,3,movimientoNormal[2])
+        transformada.SetAndObserveMatrixTransformToParent(mt)
+        referencias.SetNthFiducialPosition(0,movimientoNormal[0],movimientoNormal[1],movimientoNormal[2])
+
+        
+                
+    except():
+        pass
