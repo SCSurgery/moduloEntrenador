@@ -21,6 +21,13 @@ class moduloEntrenador:
 
 class moduloEntrenadorWidget:
   def __init__(self, parent = None):
+    self.valorTrasladoSlidex2=0
+    self.valorSlideTornillo1=0
+    self.valorSlideTornillo2=0
+    self.referenciasTornillo1=slicer.vtkMRMLMarkupsFiducialNode()
+    self.referenciasTornillo1.SetName("Fiducials Tornillo 1")
+    self.referenciasTornillo2=slicer.vtkMRMLMarkupsFiducialNode()
+    self.referenciasTornillo2.SetName("Fiducials Tornillo 2")
     if not parent:
       self.parent = slicer.qMRMLWidget()
       self.parent.setLayout(qt.QVBoxLayout())
@@ -58,17 +65,19 @@ class moduloEntrenadorWidget:
 
     planeacionLayout = qt.QFormLayout(planeacionCollapsibleButton)
 
-    insercion1Button = qt.QPushButton("Puntos de insercion") #Se crea boton pulsable, con texto "Apply"
-    planeacionLayout.addWidget(insercion1Button) #Se añade el boton al layout del boton colapsable
-    insercion1Button.connect('clicked(bool)',self.onApplyincersion1)
+    self.insercion1Button = qt.QPushButton("Puntos de insercion 1") #Se crea boton pulsable, con texto "Apply"
+    planeacionLayout.addWidget(self.insercion1Button) #Se añade el boton al layout del boton colapsable
+    self.insercion1Button.connect('clicked(bool)',self.onApplyincersion1)
 
-    insercion1Button = qt.QPushButton("Puntos de insercion") #Se crea boton pulsable, con texto "Apply"
-    planeacionLayout.addWidget(insercion1Button) #Se añade el boton al layout del boton colapsable
-    insercion1Button.connect('clicked(bool)',self.onApplyincersion1)
+    self.insercion1Button = qt.QPushButton("Puntos de insercion 2") #Se crea boton pulsable, con texto "Apply"
+    self.insercion1Button.setEnabled(False)
+    planeacionLayout.addWidget(self.insercion1Button) #Se añade el boton al layout del boton colapsable
+    self.insercion1Button.connect('clicked(bool)',self.onApplyincersion2)
 
-    reiniciarButton = qt.QPushButton("Reiniciar puntos de insercion") #Se crea boton pulsable, con texto "Apply"
-    planeacionLayout.addWidget(reiniciarButton) #Se añade el boton al layout del boton colapsable
-    reiniciarButton.connect('clicked(bool)',self.onApplyReiniciar)
+
+    self.reiniciarButton = qt.QPushButton("Reiniciar puntos de insercion") #Se crea boton pulsable, con texto "Apply"
+    planeacionLayout.addWidget(self.reiniciarButton) #Se añade el boton al layout del boton colapsable
+    self.reiniciarButton.connect('clicked(bool)',self.onApplyReiniciar)
 
     medirButton = qt.QPushButton("Regla") #Se crea boton pulsable, con texto "Apply"
     planeacionLayout.addWidget(medirButton) #Se añade el boton al layout del boton colapsable
@@ -80,13 +89,15 @@ class moduloEntrenadorWidget:
 
     cargarTonillosLayout = qt.QFormLayout(cargarTornillosCollapsibleButton)
 
-    cargarTonillo1 = qt.QPushButton("Cargar Tornillo 1") #Se crea boton pulsable, con texto "Apply"
-    cargarTonillosLayout.addWidget(cargarTonillo1) #Se añade el boton al layout del boton colapsable
-    cargarTonillo1.connect('clicked(bool)',self.onApplyCargarTornillo1)
+    self.cargarTonillo1 = qt.QPushButton("Cargar Tornillo 1") #Se crea boton pulsable, con texto "Apply"
+    self.cargarTonillo1.setEnabled(False)
+    cargarTonillosLayout.addWidget(self.cargarTonillo1) #Se añade el boton al layout del boton colapsable
+    self.cargarTonillo1.connect('clicked(bool)',self.onApplyCargarTornillo1)
 
-    cargarTonillo2 = qt.QPushButton("Cargar Tornillo 2") #Se crea boton pulsable, con texto "Apply"
-    cargarTonillosLayout.addWidget(cargarTonillo2) #Se añade el boton al layout del boton colapsable
-    cargarTonillo2.connect('clicked(bool)',self.onApplyCargarTornillo2)
+    self.cargarTonillo2 = qt.QPushButton("Cargar Tornillo 2") #Se crea boton pulsable, con texto "Apply"
+    self.cargarTonillo2.setEnabled(False)
+    cargarTonillosLayout.addWidget(self.cargarTonillo2) #Se añade el boton al layout del boton colapsable
+    self.cargarTonillo2.connect('clicked(bool)',self.onApplyCargarTornillo2)
 
 # --------------------------------------------------------------------------------------------------
   
@@ -100,6 +111,7 @@ class moduloEntrenadorWidget:
     self.comboBoxSeleccionTornillo.addItem("Tornillo 1") #Se añade opciones
     self.comboBoxSeleccionTornillo.addItem("Tornillo 2")
     manipulacionLayout.addWidget(self.comboBoxSeleccionTornillo) #Se añade al layout
+    self.comboBoxSeleccionTornillo.currentIndexChanged.connect(self.onMoveComboBox)
    
 
     
@@ -109,7 +121,9 @@ class moduloEntrenadorWidget:
     manipulacionLayout.layout().addWidget(self.barraTranslacionEjeTornillo) #Se añade slicer al layout
     self.barraTranslacionEjeTornillo.valueChanged.connect(self.onMoveTraslacionEjeTornillo)
 
-
+    self.planoTornillo1= qt.QPushButton("Mostrar plano tornillo")
+    manipulacionLayout.addWidget(self.planoTornillo1)
+    self.planoTornillo1.connect('clicked(bool)',self.onApplyplanoTornillo1)
 
 
 #---------------------------------------------------------------------------------------------------
@@ -122,37 +136,37 @@ class moduloEntrenadorWidget:
 
     columna=slicer.util.getNode('stlcolumna') # Se obtiene el nodo del objeto en escena
     columnaModelDisplayNode = columna.GetDisplayNode() 
-    columnaModelDisplayNode.SetColor(1,1,3) 
+    columnaModelDisplayNode.SetColor(0.961,0.961,0.863) #Colores parametrizados sobre 255
     columnaModelDisplayNode.SetSliceIntersectionVisibility(1)
-    transformadaColumna=slicer.vtkMRMLLinearTransformNode()
-    transformadaColumna.SetName('Transformada')
-    slicer.mrmlScene.AddNode(transformadaColumna)
-    columna.SetAndObserveTransformNodeID(transformadaColumna.GetID()) #Asocia el objeto a la matriz
-    mt = vtk.vtkMatrix4x4()
-    transformadaColumna.GetMatrixTransformToParent(mt)
-    mt.SetElement(0,0,-1) #Asigno el origen de la matriz en el fiducial target para mover el tornillo y rotar sobre este punto
-    mt.SetElement(1,1,-1)
-    transformadaColumna.SetAndObserveMatrixTransformToParent(mt)
     layoutManager = slicer.app.layoutManager() 
     threeDWidget = layoutManager.threeDWidget(0)
     threeDView = threeDWidget.threeDView()
     threeDView.resetFocalPoint()
+#Ubiar la camara en la parte posterior
+    cameraNode=slicer.util.getNode('*Camera*') 
+    camera=cameraNode.GetCamera() 
+    camera.SetPosition(-5.92673, -98.1958, -1116.53)
+    camera.SetViewUp(-0.00203823, -0.0605367, 0.998164)
+    camera.SetFocalPoint(19, 91, -1105)
+    camera.SetViewAngle(30) 
+    cameraNode.ResetClippingRange() 
 
   def onApplyincersion1(self):
     placeModePersistence = 0
     slicer.modules.markups.logic().StartPlaceMode(placeModePersistence)
-
+    self.cargarTonillo1.setEnabled(True)
+    
 
   def onApplyincersion2(self):
     placeModePersistence = 0
     slicer.modules.markups.logic().StartPlaceMode(placeModePersistence)
-    cargarTornillosCollapsibleButton.collapsed = False
-    planeacionCollapsibleButton.collapsed = True
+    self.cargarTonillo2.setEnabled(True)
 
   def onApplyReiniciar(self):
     try:
         markups=slicer.util.getNode('F')
         markups.RemoveAllMarkups()
+        self.posibleCargarTornillo = 0
     except():
         pass
     try:
@@ -170,7 +184,9 @@ class moduloEntrenadorWidget:
     interactionNode.SetCurrentInteractionMode(1)
 
   def onApplyCargarTornillo1(self):
+  	
     path3 = 'C:\Users\Camilo_Q\Documents\GitHub\moduloEntrenador/Tornillo_1.STL'
+    self.insercion1Button.setEnabled(True)
     slicer.util.loadModel(path3)
 
     referencias=slicer.util.getNode('F')
@@ -200,47 +216,45 @@ class moduloEntrenadorWidget:
     tornilloModelDisplayNode = tornillo.GetDisplayNode() 
     tornilloModelDisplayNode.SetColor(1,0,0) 
     tornilloModelDisplayNode.SetSliceIntersectionVisibility(1)
+    
+    print "Listo para cargar segundo tornillo"
 
 
 
   def onApplyCargarTornillo2(self):
-    path4 = 'C:\Users\Camilo_Q\Documents\GitHub\moduloEntrenador/Tornillo_2.STL'
-    slicer.util.loadModel(path4)
+    
 
-    referencias=slicer.util.getNode('F')
-    posicionFiducial2 = [0,0,0]
-    referencias.GetNthFiducialPosition(1,posicionFiducial2)
+        path4 = 'C:\Users\Camilo_Q\Documents\GitHub\moduloEntrenador/Tornillo_2.STL'
+        slicer.util.loadModel(path4)
 
-    referencias2 = slicer.vtkMRMLMarkupsFiducialNode()
-    referencias2.SetName("G")
-    slicer.mrmlScene.AddNode(referencias2)
+        referencias=slicer.util.getNode('F')
 
-    referencias2.AddFiducial(posicionFiducial2[0],posicionFiducial2[1],posicionFiducial2[2])
-    referencias2.SetNthMarkupLabel(0,"Target 2")
+        referencias.SetNthMarkupLabel(2,"Target 2")
+        posicionFiducial2 = [0,0,0]
+        referencias.GetNthFiducialPosition(2,posicionFiducial2)
 
-    self.tornillo1=slicer.util.getNode('Tornillo_2') #Se obtiene la informacion del tonillo cargado
-    self.transformadaTornillo1=slicer.vtkMRMLLinearTransformNode() #Se crea una transformada lineal
-    self.transformadaTornillo1.SetName('Transformada Tornillo 2') #Se asigna nombre a la transformada
-    slicer.mrmlScene.AddNode(self.transformadaTornillo1) #
-    self.tornillo1.SetAndObserveTransformNodeID(self.transformadaTornillo1.GetID()) # Se relaciona la trnasformada con el objeto tornillo
-      
-    self.matriztornillo2 = vtk.vtkMatrix4x4() #Se crea matriz 4x4 para el tornillo 2
-    self.transformadaTornillo1.GetMatrixTransformToParent(self.matriztornillo2) # a la matriz de tornillo 2 se toma como padre la matriz de movimiento
-    self.matriztornillo2.SetElement(0,3,posicionFiducial2[0]) #Se modifica la matriz del tornillo
-    self.matriztornillo2.SetElement(1,3,posicionFiducial2[1])
-    self.matriztornillo2.SetElement(2,3,posicionFiducial2[2])
-    self.transformadaTornillo1.SetAndObserveMatrixTransformToParent(self.matriztornillo2) # Se añade la matriz del tornillo modificada a la matriz padre de movimientos
+        self.tornillo1=slicer.util.getNode('Tornillo_2') #Se obtiene la informacion del tonillo cargado
+        self.transformadaTornillo2=slicer.vtkMRMLLinearTransformNode() #Se crea una transformada lineal
+        self.transformadaTornillo2.SetName('Transformada Tornillo 2') #Se asigna nombre a la transformada
+        slicer.mrmlScene.AddNode(self.transformadaTornillo2) #
+        self.tornillo1.SetAndObserveTransformNodeID(self.transformadaTornillo2.GetID()) # Se relaciona la trnasformada con el objeto tornillo
+          
+        self.matriztornillo2 = vtk.vtkMatrix4x4() #Se crea matriz 4x4 para el tornillo 2
+        self.transformadaTornillo2.GetMatrixTransformToParent(self.matriztornillo2) # a la matriz de tornillo 2 se toma como padre la matriz de movimiento
+        self.matriztornillo2.SetElement(0,3,posicionFiducial2[0]) #Se modifica la matriz del tornillo
+        self.matriztornillo2.SetElement(1,3,posicionFiducial2[1])
+        self.matriztornillo2.SetElement(2,3,posicionFiducial2[2])
+        self.transformadaTornillo2.SetAndObserveMatrixTransformToParent(self.matriztornillo2) # Se añade la matriz del tornillo modificada a la matriz padre de movimientos
 
-    referencias2.AddFiducial(posicionFiducial2[0],posicionFiducial2[1]-50,posicionFiducial2[2]) #Se agrega nuevo fiducial en direccion a la longitud del tornillo
-    referencias2.SetNthMarkupLabel(1,"access 2")
+        referencias.AddFiducial(posicionFiducial2[0],posicionFiducial2[1]-50,posicionFiducial2[2]) #Se agrega nuevo fiducial en direccion a la longitud del tornillo
+        referencias.SetNthMarkupLabel(3,"access 2")
+        referencias.AddObserver(referencias.PointModifiedEvent,self.onReferenciasMov2)
 
-    referencias2=slicer.util.getNode('G')
-    referencias2.AddObserver(referencias2.PointModifiedEvent,self.onReferenciasMov2)
-
-    tornillo2=slicer.util.getNode('Tornillo_2')
-    tornillo2ModelDisplayNode = tornillo2.GetDisplayNode() 
-    tornillo2ModelDisplayNode.SetColor(0,1,0) 
-    tornillo2ModelDisplayNode.SetSliceIntersectionVisibility(1)
+        tornillo2=slicer.util.getNode('Tornillo_2')
+        tornillo2ModelDisplayNode = tornillo2.GetDisplayNode() 
+        tornillo2ModelDisplayNode.SetColor(0,1,0) 
+        tornillo2ModelDisplayNode.SetSliceIntersectionVisibility(1)
+    
 
 
   
@@ -261,13 +275,13 @@ class moduloEntrenadorWidget:
         pass
 
   def onReferenciasMov2(self,caller,event): #Se crea metodo que es llamado cuando un fiducial es desplazado por el usuario
-    referencias = slicer.util.getNode("G") #Recuperamos el nodo de referencia creado
+    referencias = slicer.util.getNode("F") #Recuperamos el nodo de referencia creado
     access=numpy.array(numpy.zeros(3)) #Creamos 3 vectores vacios de 3 elemenos
     target=numpy.array(numpy.zeros(3))
     normal=numpy.array(numpy.zeros(3))
     try:
-        referencias.GetNthFiducialPosition(0,target) #Se obtienen las nuevas posiciones de los fiducial y se almacenan en dos de los vectores
-        referencias.GetNthFiducialPosition(1,access)
+        referencias.GetNthFiducialPosition(2,target) #Se obtienen las nuevas posiciones de los fiducial y se almacenan en dos de los vectores
+        referencias.GetNthFiducialPosition(3,access)
         normal=access-target # Se restan los dos puntos para obtener la direccion entre ellos
         transformadaNode=slicer.util.getNode('Transformada Tornillo 2')
         self.setTransformOrigin(target,transformadaNode) #Funcion encargada del desplazamiento
@@ -297,7 +311,7 @@ class moduloEntrenadorWidget:
     transform=vtk.vtkTransform() # Se crea nueva transformada 
     #
     nodeNormal=[-mt.GetElement(0,1),-mt.GetElement(1,1),-mt.GetElement(2,1)] #Recuperamos el eje z del tornillo
-    nodePosicion=[mt.GetElement(0,3),mt.GetElement(1,3),mt.GetElement(2,3)] #Recuperamos la posicion del tornillo
+    self.nodePosicion=[mt.GetElement(0,3),mt.GetElement(1,3),mt.GetElement(2,3)] #Recuperamos la posicion del tornillo
     #
     mt.SetElement(0,3,0) #Asigno el origen de la matriz en el fiducial target para mover el tornillo y rotar sobre este punto
     mt.SetElement(1,3,0) 
@@ -315,15 +329,13 @@ class moduloEntrenadorWidget:
     transform.RotateWXYZ(rotacion,cross) #Create a rotation matrix and concatenate it with the current transformation according to PreMultiply or PostMultiply semantics. The angle is in degrees, and (x,y,z) specifies the axis that the rotation will be performed around.
     transform.GetMatrix(mt) #Se recupera la matriz rotada
     #
-    mt.SetElement(0,3,nodePosicion[0]) #A la nueva matriz rotada le cambio nuevamente el origen a donde estaba
-    mt.SetElement(1,3,nodePosicion[1])
-    mt.SetElement(2,3,nodePosicion[2])
+    mt.SetElement(0,3,self.nodePosicion[0]) #A la nueva matriz rotada le cambio nuevamente el origen a donde estaba
+    mt.SetElement(1,3,self.nodePosicion[1])
+    mt.SetElement(2,3,self.nodePosicion[2])
     transformada.SetAndObserveMatrixTransformToParent(mt) # Actulizo la matriz con los cambios realizados
 
   def onMoveTraslacionEjeTornillo(self):
-    
-    valorTrasladoSlidex=self.barraTranslacionEjeTornillo.value
-    print valorTrasladoSlidex
+    valorTrasladoSlidex =self.barraTranslacionEjeTornillo.value
     access=numpy.array(numpy.zeros(3)) #Creamos 3 vectores vacios de 3 elemenos
     target=numpy.array(numpy.zeros(3))
     normal=numpy.array(numpy.zeros(3))
@@ -336,27 +348,68 @@ class moduloEntrenadorWidget:
             referencias.GetNthFiducialPosition(1,access)
             normal=access-target # Se restan los dos puntos para obtener la direccion entre ellos
             transformadaNode=slicer.util.getNode('Transformada Tornillo 1')
+            self.valorSlideTornillo1=self.barraTranslacionEjeTornillo.value
         else:
-            referencias = slicer.util.getNode("G")
-            referencias.GetNthFiducialPosition(0,target) #Se obtienen las nuevas posiciones de los fiducial y se almacenan en dos de los vectores
-            referencias.GetNthFiducialPosition(1,access)
+            referencias = slicer.util.getNode("F")
+            referencias.GetNthFiducialPosition(2,target) #Se obtienen las nuevas posiciones de los fiducial y se almacenan en dos de los vectores
+            referencias.GetNthFiducialPosition(3,access)
             normal=access-target # Se restan los dos puntos para obtener la direccion entre ellos
             transformadaNode=slicer.util.getNode('Transformada Tornillo 2')
+            self.valorSlideTornillo2=self.barraTranslacionEjeTornillo.value
 
         vtk.vtkMath().Normalize(normal) #Se normaliza la direccion del vector entre los dos fiducial
         mt = vtk.vtkMatrix4x4()   #Se crea nueva matriz para manipular la matriz de rot-des
         transformada=transformadaNode  #Se recupera el nodo de la transformada creada
         transformada.GetMatrixTransformToParent(mt)
-        movimientoNormal[0]=target[0]-normal[0]*valorTrasladoSlidex
-        movimientoNormal[1]=target[1]-normal[1]*valorTrasladoSlidex
-        movimientoNormal[2]=target[2]-normal[2]*valorTrasladoSlidex
+        if valorTrasladoSlidex>self.valorTrasladoSlidex2:
+            movimientoNormal[0]=target[0]-normal[0]*2
+            movimientoNormal[1]=target[1]-normal[1]*2
+            movimientoNormal[2]=target[2]-normal[2]*2
+        else: 
+            movimientoNormal[0]=target[0]+normal[0]*2
+            movimientoNormal[1]=target[1]+normal[1]*2
+            movimientoNormal[2]=target[2]+normal[2]*2
         mt.SetElement(0,3,movimientoNormal[0]) #Asigno el origen de la matriz en el fiducial target para mover el tornillo y rotar sobre este punto
         mt.SetElement(1,3,movimientoNormal[1])
         mt.SetElement(2,3,movimientoNormal[2])
         transformada.SetAndObserveMatrixTransformToParent(mt)
-        referencias.SetNthFiducialPosition(0,movimientoNormal[0],movimientoNormal[1],movimientoNormal[2])
-
+        if self.comboBoxSeleccionTornillo.currentIndex == 0: referencias.SetNthFiducialPosition(0,movimientoNormal[0],movimientoNormal[1],movimientoNormal[2])
+        else: referencias.SetNthFiducialPosition(2,movimientoNormal[0],movimientoNormal[1],movimientoNormal[2])
+        self.valorTrasladoSlidex2=valorTrasladoSlidex
         
                 
     except():
         pass
+
+  def onMoveComboBox(self):
+
+  	if self.comboBoxSeleccionTornillo.currentIndex == 0: self.barraTranslacionEjeTornillo.setValue(self.valorSlideTornillo1)
+		
+
+ 	else: self.barraTranslacionEjeTornillo.setValue(self.valorSlideTornillo2)
+    	
+  def onApplyplanoTornillo1(self):
+
+    mtslide = vtk.vtkMatrix4x4()
+    transformadaNode=slicer.util.getNode('Transformada Tornillo 1')
+    transformada=transformadaNode
+    transformada.GetMatrixTransformToParent(mtslide)
+    lm = slicer.app.layoutManager()
+    gw = lm.sliceWidget('Green')
+    yw = lm.sliceWidget('Yellow')
+    rw = lm.sliceWidget('Red')
+    gNode = gw.sliceLogic().GetBackgroundLayer().GetSliceNode()
+    yNode = yw.sliceLogic().GetBackgroundLayer().GetSliceNode()
+    rNode= rw.sliceLogic().GetBackgroundLayer().GetSliceNode()
+    mtslide.SetElement(0,3,self.nodePosicion[0]) #A la nueva matriz rotada le cambio nuevamente el origen a donde estaba
+    mtslide.SetElement(1,3,self.nodePosicion[1])
+    mtslide.SetElement(2,3,self.nodePosicion[2])
+    gNode.SetSliceToRAS(mtslide)
+    layoutManager = slicer.app.layoutManager() 
+    layoutManager.setLayout(4)
+    layoutManager.setLayout(1)
+    
+
+
+#setlistaactuvivefiducial SetActiveFiducialListID(lista.GetID())
+
