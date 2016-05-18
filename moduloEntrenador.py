@@ -28,6 +28,9 @@ class moduloEntrenadorWidget:
     self.referenciasTornillo1.SetName("Fiducials Tornillo 1")
     self.referenciasTornillo2=slicer.vtkMRMLMarkupsFiducialNode()
     self.referenciasTornillo2.SetName("Fiducials Tornillo 2")
+    slicer.mrmlScene.AddNode(self.referenciasTornillo2)
+    slicer.mrmlScene.AddNode(self.referenciasTornillo1)
+
     if not parent:
       self.parent = slicer.qMRMLWidget()
       self.parent.setLayout(qt.QVBoxLayout())
@@ -54,10 +57,10 @@ class moduloEntrenadorWidget:
     self.layout.addWidget(cargarTornillosCollapsibleButton)
     cargarTornillosCollapsibleButton.collapsed = False
 
-    manipulacionTornillosCollapsibleButton = ctk.ctkCollapsibleButton()
-    manipulacionTornillosCollapsibleButton.text = "Manipulacion de tornillos"
-    self.layout.addWidget(manipulacionTornillosCollapsibleButton)
-    manipulacionTornillosCollapsibleButton.collapsed = False
+    self.manipulacionTornillosCollapsibleButton = ctk.ctkCollapsibleButton()
+    self.manipulacionTornillosCollapsibleButton.text = "Manipulacion de tornillos"
+    self.layout.addWidget(self.manipulacionTornillosCollapsibleButton)
+    self.manipulacionTornillosCollapsibleButton.setDisabled(True)
 
 
 #----------------------------------------------------------------------------------------------
@@ -69,10 +72,10 @@ class moduloEntrenadorWidget:
     planeacionLayout.addWidget(self.insercion1Button) #Se añade el boton al layout del boton colapsable
     self.insercion1Button.connect('clicked(bool)',self.onApplyincersion1)
 
-    self.insercion1Button = qt.QPushButton("Puntos de insercion 2") #Se crea boton pulsable, con texto "Apply"
-    self.insercion1Button.setEnabled(False)
-    planeacionLayout.addWidget(self.insercion1Button) #Se añade el boton al layout del boton colapsable
-    self.insercion1Button.connect('clicked(bool)',self.onApplyincersion2)
+    self.insercion2Button = qt.QPushButton("Puntos de insercion 2") #Se crea boton pulsable, con texto "Apply"
+    self.insercion2Button.setEnabled(False)
+    planeacionLayout.addWidget(self.insercion2Button) #Se añade el boton al layout del boton colapsable
+    self.insercion2Button.connect('clicked(bool)',self.onApplyincersion2)
 
 
     self.reiniciarButton = qt.QPushButton("Reiniciar puntos de insercion") #Se crea boton pulsable, con texto "Apply"
@@ -102,7 +105,7 @@ class moduloEntrenadorWidget:
 # --------------------------------------------------------------------------------------------------
   
     #Layout manipulacion de tornillos
-    manipulacionLayout = qt.QFormLayout(manipulacionTornillosCollapsibleButton)
+    manipulacionLayout = qt.QFormLayout(self.manipulacionTornillosCollapsibleButton)
 
     labelSeleccionTornillo = qt.QLabel("Seleccione tornillo a mover: ") #Se crea label para seleccion de tornillo a manipular
     manipulacionLayout.addWidget(labelSeleccionTornillo) #Se añade label
@@ -152,25 +155,33 @@ class moduloEntrenadorWidget:
     cameraNode.ResetClippingRange() 
 
   def onApplyincersion1(self):
+    aml = slicer.modules.markups.logic()
+    F=slicer.util.getNode("Fiducials Tornillo 1")
+    aml.SetActiveListID(F)
     placeModePersistence = 0
     slicer.modules.markups.logic().StartPlaceMode(placeModePersistence)
+    self.insercion1Button.setEnabled(False)
     self.cargarTonillo1.setEnabled(True)
     
 
   def onApplyincersion2(self):
+    aml = slicer.modules.markups.logic()
+    F=slicer.util.getNode("Fiducials Tornillo 2")
+    aml.SetActiveListID(F)
     placeModePersistence = 0
     slicer.modules.markups.logic().StartPlaceMode(placeModePersistence)
     self.cargarTonillo2.setEnabled(True)
+    self.insercion2Button.setEnabled(False)
 
   def onApplyReiniciar(self):
     try:
-        markups=slicer.util.getNode('F')
+        markups=slicer.util.getNode('Fiducials Tornillo 1')
         markups.RemoveAllMarkups()
         self.posibleCargarTornillo = 0
     except():
         pass
     try:
-        markups2=slicer.util.getNode('G')
+        markups2=slicer.util.getNode('Fiducials Tornillo 2')
         markups2.RemoveAllMarkups()
     except():
         pass
@@ -186,10 +197,11 @@ class moduloEntrenadorWidget:
   def onApplyCargarTornillo1(self):
   	
     path3 = 'C:\Users\Camilo_Q\Documents\GitHub\moduloEntrenador/Tornillo_1.STL'
-    self.insercion1Button.setEnabled(True)
+    self.insercion2Button.setEnabled(True)
+    self.cargarTonillo1.setEnabled(False)
     slicer.util.loadModel(path3)
 
-    referencias=slicer.util.getNode('F')
+    referencias=slicer.util.getNode('Fiducials Tornillo 1')
     referencias.SetNthMarkupLabel(0,"target 1")
     posicionFiducial1 = [0,0,0]
     referencias.GetNthFiducialPosition(0,posicionFiducial1)
@@ -217,21 +229,19 @@ class moduloEntrenadorWidget:
     tornilloModelDisplayNode.SetColor(1,0,0) 
     tornilloModelDisplayNode.SetSliceIntersectionVisibility(1)
     
-    print "Listo para cargar segundo tornillo"
-
-
-
   def onApplyCargarTornillo2(self):
     
 
         path4 = 'C:\Users\Camilo_Q\Documents\GitHub\moduloEntrenador/Tornillo_2.STL'
         slicer.util.loadModel(path4)
+        self.cargarTonillo2.setEnabled(True)
+        self.manipulacionTornillosCollapsibleButton.setEnabled(True)
 
-        referencias=slicer.util.getNode('F')
+        referencias=slicer.util.getNode('Fiducials Tornillo 2')
 
-        referencias.SetNthMarkupLabel(2,"Target 2")
+        referencias.SetNthMarkupLabel(0,"Target 2")
         posicionFiducial2 = [0,0,0]
-        referencias.GetNthFiducialPosition(2,posicionFiducial2)
+        referencias.GetNthFiducialPosition(0,posicionFiducial2)
 
         self.tornillo1=slicer.util.getNode('Tornillo_2') #Se obtiene la informacion del tonillo cargado
         self.transformadaTornillo2=slicer.vtkMRMLLinearTransformNode() #Se crea una transformada lineal
@@ -247,7 +257,7 @@ class moduloEntrenadorWidget:
         self.transformadaTornillo2.SetAndObserveMatrixTransformToParent(self.matriztornillo2) # Se añade la matriz del tornillo modificada a la matriz padre de movimientos
 
         referencias.AddFiducial(posicionFiducial2[0],posicionFiducial2[1]-50,posicionFiducial2[2]) #Se agrega nuevo fiducial en direccion a la longitud del tornillo
-        referencias.SetNthMarkupLabel(3,"access 2")
+        referencias.SetNthMarkupLabel(1,"access 2")
         referencias.AddObserver(referencias.PointModifiedEvent,self.onReferenciasMov2)
 
         tornillo2=slicer.util.getNode('Tornillo_2')
@@ -259,7 +269,7 @@ class moduloEntrenadorWidget:
 
   
   def onReferenciasMov(self,caller,event): #Se crea metodo que es llamado cuando un fiducial es desplazado por el usuario
-    referencias = slicer.util.getNode("F") #Recuperamos el nodo de referencia creado
+    referencias = slicer.util.getNode("Fiducials Tornillo 1") #Recuperamos el nodo de referencia creado
     access=numpy.array(numpy.zeros(3)) #Creamos 3 vectores vacios de 3 elemenos
     target=numpy.array(numpy.zeros(3))
     normal=numpy.array(numpy.zeros(3))
@@ -275,13 +285,13 @@ class moduloEntrenadorWidget:
         pass
 
   def onReferenciasMov2(self,caller,event): #Se crea metodo que es llamado cuando un fiducial es desplazado por el usuario
-    referencias = slicer.util.getNode("F") #Recuperamos el nodo de referencia creado
+    referencias = slicer.util.getNode("Fiducials Tornillo 2") #Recuperamos el nodo de referencia creado
     access=numpy.array(numpy.zeros(3)) #Creamos 3 vectores vacios de 3 elemenos
     target=numpy.array(numpy.zeros(3))
     normal=numpy.array(numpy.zeros(3))
     try:
-        referencias.GetNthFiducialPosition(2,target) #Se obtienen las nuevas posiciones de los fiducial y se almacenan en dos de los vectores
-        referencias.GetNthFiducialPosition(3,access)
+        referencias.GetNthFiducialPosition(0,target) #Se obtienen las nuevas posiciones de los fiducial y se almacenan en dos de los vectores
+        referencias.GetNthFiducialPosition(1,access)
         normal=access-target # Se restan los dos puntos para obtener la direccion entre ellos
         transformadaNode=slicer.util.getNode('Transformada Tornillo 2')
         self.setTransformOrigin(target,transformadaNode) #Funcion encargada del desplazamiento
@@ -343,16 +353,16 @@ class moduloEntrenadorWidget:
     try:
 
         if self.comboBoxSeleccionTornillo.currentIndex == 0:
-            referencias = slicer.util.getNode("F")
+            referencias = slicer.util.getNode("Fiducials Tornillo 1")
             referencias.GetNthFiducialPosition(0,target) #Se obtienen las nuevas posiciones de los fiducial y se almacenan en dos de los vectores
             referencias.GetNthFiducialPosition(1,access)
             normal=access-target # Se restan los dos puntos para obtener la direccion entre ellos
             transformadaNode=slicer.util.getNode('Transformada Tornillo 1')
             self.valorSlideTornillo1=self.barraTranslacionEjeTornillo.value
         else:
-            referencias = slicer.util.getNode("F")
-            referencias.GetNthFiducialPosition(2,target) #Se obtienen las nuevas posiciones de los fiducial y se almacenan en dos de los vectores
-            referencias.GetNthFiducialPosition(3,access)
+            referencias = slicer.util.getNode("Fiducials Tornillo 2")
+            referencias.GetNthFiducialPosition(0,target) #Se obtienen las nuevas posiciones de los fiducial y se almacenan en dos de los vectores
+            referencias.GetNthFiducialPosition(1,access)
             normal=access-target # Se restan los dos puntos para obtener la direccion entre ellos
             transformadaNode=slicer.util.getNode('Transformada Tornillo 2')
             self.valorSlideTornillo2=self.barraTranslacionEjeTornillo.value
@@ -374,7 +384,7 @@ class moduloEntrenadorWidget:
         mt.SetElement(2,3,movimientoNormal[2])
         transformada.SetAndObserveMatrixTransformToParent(mt)
         if self.comboBoxSeleccionTornillo.currentIndex == 0: referencias.SetNthFiducialPosition(0,movimientoNormal[0],movimientoNormal[1],movimientoNormal[2])
-        else: referencias.SetNthFiducialPosition(2,movimientoNormal[0],movimientoNormal[1],movimientoNormal[2])
+        else: referencias.SetNthFiducialPosition(0,movimientoNormal[0],movimientoNormal[1],movimientoNormal[2])
         self.valorTrasladoSlidex2=valorTrasladoSlidex
         
                 
